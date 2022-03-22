@@ -958,6 +958,14 @@ class GPT2LMHeadModel(GPT2PreTrainedModel):
         # Initialize weights and apply final processing
         self.post_init()
 
+        # cache key values for the prompt over different runs
+        # enabled by cache_prompt
+        self.prompt_key_values = None
+
+        # cache key values for all possible prefix
+        # enabled by cache_all
+        self.cached_outputs = {}
+
     @add_start_docstrings(PARALLELIZE_DOCSTRING)
     def parallelize(self, device_map=None):
         self.device_map = (
@@ -985,10 +993,13 @@ class GPT2LMHeadModel(GPT2PreTrainedModel):
         self.lm_head = new_embeddings
 
     def prepare_inputs_for_generation(self, input_ids, past=None, **kwargs):
+        if past:
+            uncahced_len = input_ids.shape[1] - past[0][0].shape[-2]
+
         token_type_ids = kwargs.get("token_type_ids", None)
         # only last token for inputs_ids if past is defined in kwargs
         if past:
-            input_ids = input_ids[:, -1].unsqueeze(-1)
+            input_ids = input_ids[:, -uncahced_len:]
             if token_type_ids is not None:
                 token_type_ids = token_type_ids[:, -1].unsqueeze(-1)
 
@@ -1000,7 +1011,7 @@ class GPT2LMHeadModel(GPT2PreTrainedModel):
             position_ids = attention_mask.long().cumsum(-1) - 1
             position_ids.masked_fill_(attention_mask == 0, 1)
             if past:
-                position_ids = position_ids[:, -1].unsqueeze(-1)
+                position_ids = position_ids[:, -uncahced_len:]
         else:
             position_ids = None
         return {

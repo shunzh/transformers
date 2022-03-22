@@ -1523,16 +1523,33 @@ class GenerationMixin:
                 if this_peer_finished_flag.item() == 0.0:
                     break
 
-            # prepare model inputs
-            model_inputs = self.prepare_inputs_for_generation(input_ids, **model_kwargs)
+            input_ids_key = tuple(input_ids[0].tolist())
+            if model_kwargs['cache_all'] and input_ids_key in self.cached_outputs.keys():
+                print('cache hit')
+                outputs = self.cached_outputs[input_ids_key]
+            else:
+                if model_kwargs['cache_prompt'] and 'past' not in model_kwargs and self.prompt_key_values is not None:
+                    # if we just start generation, but prompt key values are cached, use them directly
+                    model_kwargs['past'] = self.prompt_key_values
 
-            # forward pass to get next token
-            outputs = self(
-                **model_inputs,
-                return_dict=True,
-                output_attentions=output_attentions,
-                output_hidden_states=output_hidden_states,
-            )
+                # prepare model inputs
+                model_inputs = self.prepare_inputs_for_generation(input_ids, **model_kwargs)
+
+                # forward pass to get next token
+                outputs = self(
+                    **model_inputs,
+                    return_dict=True,
+                    output_attentions=output_attentions,
+                    output_hidden_states=output_hidden_states,
+                )
+
+                if model_kwargs['cache_all']:
+                    self.cached_outputs[input_ids_key] = outputs
+                    print(len(self.cached_outputs))
+
+            if model_kwargs['cache_prompt'] and self.prompt_key_values is None:
+                # cache the key values for the prompt under the first run
+                self.prompt_key_values = outputs.past_key_values
 
             if synced_gpus and this_peer_finished:
                 cur_len = cur_len + 1
