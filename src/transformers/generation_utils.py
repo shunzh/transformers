@@ -1511,6 +1511,11 @@ class GenerationMixin:
         cur_len = input_ids.shape[-1]
 
         this_peer_finished = False  # used by synced_gpus only
+
+        if model_kwargs['cache_prefix']:
+            # if cache is enabled and exists, get cached key values
+            model_kwargs['past'] = self.prefix_key_values.get(input_ids[0, :])
+
         while True:
 
             if synced_gpus:
@@ -1523,10 +1528,6 @@ class GenerationMixin:
                 if this_peer_finished_flag.item() == 0.0:
                     break
 
-            if model_kwargs['cache_prompt'] and 'past' not in model_kwargs and self.prompt_key_values is not None:
-                # if we just start generation, but prompt key values are cached, use them directly
-                model_kwargs['past'] = self.prompt_key_values
-
             # prepare model inputs
             model_inputs = self.prepare_inputs_for_generation(input_ids, **model_kwargs)
 
@@ -1537,10 +1538,6 @@ class GenerationMixin:
                 output_attentions=output_attentions,
                 output_hidden_states=output_hidden_states,
             )
-
-            if model_kwargs['cache_prompt'] and self.prompt_key_values is None:
-                # cache the key values for the prompt under the first run
-                self.prompt_key_values = outputs.past_key_values
 
             if synced_gpus and this_peer_finished:
                 cur_len = cur_len + 1
@@ -1595,6 +1592,10 @@ class GenerationMixin:
                     break
                 else:
                     this_peer_finished = True
+
+        if model_kwargs['cache_prefix']:
+            # cache model_kwards['past'], can be used if input_ids is needed in the future
+            self.prefix_key_values.add(input_ids[0, :-1], model_kwargs['past'])
 
         if return_dict_in_generate:
             if self.config.is_encoder_decoder:
@@ -2037,16 +2038,6 @@ class GenerationMixin:
                 # did all peers finish? the reduced sum will be 0.0 then
                 if this_peer_finished_flag.item() == 0.0:
                     break
-
-            if model_kwargs['cache_prompt'] and 'past' not in model_kwargs and self.prompt_key_values is not None:
-                # if we just start generation, but prompt key values are cached, use them
-                # since we're doing beam search, need to duplicate the tensor along the batch dimension
-                past_key_values = []
-                for layer_past in self.prompt_key_values:
-                    k, v = layer_past
-                    past_key_values.append((k.repeat(num_beams, 1, 1, 1), v.repeat(num_beams, 1, 1, 1)))
-
-                model_kwargs['past'] = past_key_values
 
             model_inputs = self.prepare_inputs_for_generation(input_ids, **model_kwargs)
 

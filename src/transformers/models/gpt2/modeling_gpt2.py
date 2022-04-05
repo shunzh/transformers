@@ -26,6 +26,7 @@ from packaging import version
 from torch import nn
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 
+from .cache import GPTKeyValueCache
 
 if version.parse(torch.__version__) >= version.parse("1.6"):
     is_amp_available = True
@@ -958,13 +959,9 @@ class GPT2LMHeadModel(GPT2PreTrainedModel):
         # Initialize weights and apply final processing
         self.post_init()
 
-        # cache key values for the prompt over different runs
-        # enabled by cache_prompt
-        self.prompt_key_values = None
-
-        # cache key values for all possible prefix
-        # enabled by cache_all
-        self.cached_outputs = {}
+        # cache key values for the past input_ids that we have seen
+        # enabled by cache_prefix
+        self.prefix_key_values = GPTKeyValueCache()
 
     @add_start_docstrings(PARALLELIZE_DOCSTRING)
     def parallelize(self, device_map=None):
