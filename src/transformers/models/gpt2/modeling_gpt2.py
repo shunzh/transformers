@@ -952,6 +952,9 @@ class GPT2LMHeadModel(GPT2PreTrainedModel):
         self.transformer = GPT2Model(config)
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
 
+        # another output head that outputs a scalar (used for value evaluation)
+        self.value_head = nn.Linear(config.n_embd, 1, bias=False)
+
         # Model parallel
         self.model_parallel = False
         self.device_map = None
@@ -1075,6 +1078,7 @@ class GPT2LMHeadModel(GPT2PreTrainedModel):
             hidden_states = hidden_states.to(self.lm_head.weight.device)
 
         lm_logits = self.lm_head(hidden_states)
+        output_values = self.value_head(hidden_states).sigmoid()
 
         loss = None
         if labels is not None:
@@ -1092,6 +1096,7 @@ class GPT2LMHeadModel(GPT2PreTrainedModel):
         return CausalLMOutputWithCrossAttentions(
             loss=loss,
             logits=lm_logits,
+            values=output_values,
             past_key_values=transformer_outputs.past_key_values,
             hidden_states=transformer_outputs.hidden_states,
             attentions=transformer_outputs.attentions,
