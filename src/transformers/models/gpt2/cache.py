@@ -7,12 +7,6 @@ class GPTKeyValueCache:
         if input_ids_key in self.cache.keys():
             return
 
-        keys_to_remove = []
-        for cached_key in self.cache.keys():
-            if cached_key == input_ids_key[:len(cached_key)]:
-                keys_to_remove.append(cached_key)
-        for k in keys_to_remove: del self.cache[k]
-
         self.cache[input_ids_key] = key_values
 
     def get(self, input_ids):
