@@ -84,6 +84,8 @@ class GreedySearchDecoderOnlyOutput(ModelOutput):
     attentions: Optional[Tuple[Tuple[torch.FloatTensor]]] = None
     hidden_states: Optional[Tuple[Tuple[torch.FloatTensor]]] = None
 
+    value: torch.LongTensor = None
+
 
 @dataclass
 class GreedySearchEncoderDecoderOutput(ModelOutput):
@@ -1544,6 +1546,7 @@ class GenerationMixin:
                 continue  # don't waste resources running the code we don't need
 
             next_token_logits = outputs.logits[:, -1, :]
+            value = outputs.values[:, -1, :].item() # get the value prediction
 
             # Store scores, attentions and hidden_states when required
             if return_dict_in_generate:
@@ -1612,6 +1615,7 @@ class GenerationMixin:
                 return GreedySearchDecoderOnlyOutput(
                     sequences=input_ids,
                     scores=scores,
+                    value=value,
                     attentions=decoder_attentions,
                     hidden_states=decoder_hidden_states,
                 )
