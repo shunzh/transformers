@@ -1514,7 +1514,7 @@ class GenerationMixin:
 
         if model_kwargs['cache_prefix']:
             # if cache is enabled and exists, get cached key values
-            model_kwargs['past'] = self.prefix_key_values.get(input_ids[0, :])
+            model_kwargs['past'] = self.prefix_key_values.get(input_ids)
 
         while True:
 
@@ -1595,7 +1595,7 @@ class GenerationMixin:
 
         if model_kwargs['cache_prefix']:
             # cache model_kwards['past'], can be used if input_ids is needed in the future
-            self.prefix_key_values.add(input_ids[0, :-1], model_kwargs['past'])
+            self.prefix_key_values.add(input_ids[:, :-1], model_kwargs['past'])
 
         if return_dict_in_generate:
             if self.config.is_encoder_decoder:
@@ -2027,6 +2027,11 @@ class GenerationMixin:
         beam_scores = beam_scores.view((batch_size * num_beams,))
 
         this_peer_finished = False  # used by synced_gpus only
+
+        if model_kwargs['cache_prefix']:
+            # if cache is enabled and exists, get cached key values
+            model_kwargs['past'] = self.prefix_key_values.get(input_ids)
+
         while True:
 
             if synced_gpus:
@@ -2080,6 +2085,8 @@ class GenerationMixin:
                         if self.config.is_encoder_decoder
                         else (outputs.hidden_states,)
                     )
+
+            self.top_k_hash.add(input_ids, next_token_scores)
 
             # reshape for beam search
             vocab_size = next_token_scores.shape[-1]
@@ -2135,6 +2142,10 @@ class GenerationMixin:
             eos_token_id=eos_token_id,
             max_length=stopping_criteria.max_length,
         )
+
+        if model_kwargs['cache_prefix']:
+            # cache model_kwards['past'], can be used if input_ids is needed in the future
+            self.prefix_key_values.add(input_ids[:, :-1], model_kwargs['past'])
 
         if return_dict_in_generate:
             if not output_scores:
