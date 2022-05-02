@@ -1548,6 +1548,8 @@ class GenerationMixin:
             next_token_logits = outputs.logits[:, -1, :]
             value = outputs.values[:, -1, :].item() # get the value prediction
 
+            self.top_k_hash.add(input_ids, next_token_logits)
+
             # Store scores, attentions and hidden_states when required
             if return_dict_in_generate:
                 if output_scores:
