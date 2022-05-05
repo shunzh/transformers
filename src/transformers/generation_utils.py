@@ -1545,7 +1545,8 @@ class GenerationMixin:
 
             next_token_logits = outputs.logits[:, -1, :]
 
-            self.top_k_hash.add(input_ids, next_token_logits)
+            if model_kwargs['cache_prefix']:
+                self.top_k_hash.add(input_ids, next_token_logits)
 
             # Store scores, attentions and hidden_states when required
             if return_dict_in_generate:
@@ -2088,7 +2089,8 @@ class GenerationMixin:
                         else (outputs.hidden_states,)
                     )
 
-            self.top_k_hash.add(input_ids, next_token_scores)
+            if model_kwargs['cache_prefix']:
+                self.top_k_hash.add(input_ids, next_token_scores)
 
             # reshape for beam search
             vocab_size = next_token_scores.shape[-1]

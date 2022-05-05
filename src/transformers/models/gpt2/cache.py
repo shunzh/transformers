@@ -75,13 +75,17 @@ class GPTKeyValueCache:
         else:
             return None
 
-    def clear(self, encoded_ids):
-        encoded_ids = tuple(encoded_ids)
-        keys_to_remove = []
-        for cached_key in self.cache.keys():
-            if cached_key[:len(encoded_ids)] != encoded_ids:
-                keys_to_remove.append(cached_key)
-        for k in keys_to_remove: del self.cache[k]
+    def clear(self, encoded_ids=None):
+        if encoded_ids is None:
+            # clear cache unconditionally
+            self.cache = {}
+        else:
+            encoded_ids = tuple(encoded_ids)
+            keys_to_remove = []
+            for cached_key in self.cache.keys():
+                if cached_key[:len(encoded_ids)] != encoded_ids:
+                    keys_to_remove.append(cached_key)
+            for k in keys_to_remove: del self.cache[k]
 
 
 class GPTTopOutputCache:
@@ -110,10 +114,14 @@ class GPTTopOutputCache:
         else:
             return None
 
-    def clear(self, encoded_ids):
-        encoded_ids = tuple(encoded_ids)
-        keys_to_remove = []
-        for cached_key in self.cache.keys():
-            if cached_key[:len(encoded_ids)] != encoded_ids:
-                keys_to_remove.append(cached_key)
-        for k in keys_to_remove: del self.cache[k]
+    def clear(self, encoded_ids=None):
+        if encoded_ids is None:
+            # clear cache unconditionally
+            self.cache = {}
+        else:
+            encoded_ids = tuple(encoded_ids)
+            keys_to_remove = []
+            for cached_key in self.cache.keys():
+                if cached_key[:len(encoded_ids)] != encoded_ids:
+                    keys_to_remove.append(cached_key)
+            for k in keys_to_remove: del self.cache[k]
