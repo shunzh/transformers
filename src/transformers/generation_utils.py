@@ -1512,9 +1512,9 @@ class GenerationMixin:
 
         this_peer_finished = False  # used by synced_gpus only
 
-        # if model_kwargs['cache_prefix']:
-        #     # if cache is enabled and exists, get cached key values
-        #     model_kwargs['past'] = self.prefix_key_values.get(input_ids)
+        if model_kwargs['cache_prefix']:
+            # if cache is enabled and exists, get cached key values
+            model_kwargs['past'] = self.prefix_key_values.get(input_ids)
 
         while True:
 
@@ -1545,7 +1545,7 @@ class GenerationMixin:
 
             next_token_logits = outputs.logits[:, -1, :]
 
-            if model_kwargs['cache_prefix']:
+            if model_kwargs['cache_top_k']:
                 self.top_k_hash.add(input_ids, next_token_logits)
 
             # Store scores, attentions and hidden_states when required
@@ -1596,9 +1596,9 @@ class GenerationMixin:
                 else:
                     this_peer_finished = True
 
-        # if model_kwargs['cache_prefix']:
-        #     # cache model_kwards['past'], can be used if input_ids is needed in the future
-        #     self.prefix_key_values.add(input_ids[:, :-1], model_kwargs['past'])
+        if model_kwargs['cache_prefix']:
+            # cache model_kwards['past'], can be used if input_ids is needed in the future
+            self.prefix_key_values.add(input_ids[:, :-1], model_kwargs['past'])
 
         if return_dict_in_generate:
             if self.config.is_encoder_decoder:
@@ -2031,9 +2031,9 @@ class GenerationMixin:
 
         this_peer_finished = False  # used by synced_gpus only
 
-        # if model_kwargs['cache_prefix']:
-        #     # if cache is enabled and exists, get cached key values
-        #     model_kwargs['past'] = self.prefix_key_values.get(input_ids)
+        if model_kwargs['cache_prefix']:
+            # if cache is enabled and exists, get cached key values
+            model_kwargs['past'] = self.prefix_key_values.get(input_ids)
 
         while True:
 
@@ -2089,7 +2089,7 @@ class GenerationMixin:
                         else (outputs.hidden_states,)
                     )
 
-            if model_kwargs['cache_prefix']:
+            if model_kwargs['cache_top_k']:
                 self.top_k_hash.add(input_ids, next_token_scores)
 
             # reshape for beam search
@@ -2147,9 +2147,9 @@ class GenerationMixin:
             max_length=stopping_criteria.max_length,
         )
 
-        # if model_kwargs['cache_prefix']:
-        #     # cache model_kwards['past'], can be used if input_ids is needed in the future
-        #     self.prefix_key_values.add(input_ids[:, :-1], model_kwargs['past'])
+        if model_kwargs['cache_prefix']:
+            # cache model_kwards['past'], can be used if input_ids is needed in the future
+            self.prefix_key_values.add(input_ids[:, :-1], model_kwargs['past'])
 
         if return_dict_in_generate:
             if not output_scores:
