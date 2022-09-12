@@ -829,7 +829,7 @@ class GPT2Model(GPT2PreTrainedModel):
         head_mask = self.get_head_mask(head_mask, self.config.n_layer)
 
         if inputs_embeds is None:
-            inputs_embeds = self.wte(input_ids)
+            inputs_embeds = self.wte(input_ids.type(torch.LongTensor).to(device))
         position_embeds = self.wpe(position_ids)
         hidden_states = inputs_embeds + position_embeds
 
